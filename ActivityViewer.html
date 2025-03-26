@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      .container {
+        display: flex;
+        height: 100vh;
+        max-height: 580px;
+        overflow: hidden;
+      }
+      
+      .left-panel {
+        width: 250px;
+        padding: 15px;
+        border-right: 1px solid #ddd;
+        overflow-y: auto;
+        background-color: #f8f8f8;
+      }
+      
+      .right-panel {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+      }
+      
+      .block {
+        margin-bottom: 15px;
+      }
+      
+      .label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .tab-container {
+        margin-bottom: 15px;
+      }
+      
+      .tab {
+        display: inline-block;
+        padding: 8px 12px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        background: #f0f0f0;
+        margin-right: 5px;
+        border-radius: 4px 4px 0 0;
+      }
+      
+      .tab.active {
+        background: #fff;
+        font-weight: bold;
+        border-bottom: 1px solid #fff;
+        margin-bottom: -1px;
+      }
+      
+      .tab-content {
+        display: none;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 0 4px 4px 4px;
+        background: #fff;
+      }
+      
+      .tab-content.active {
+        display: block;
+      }
+      
+      .filter-options {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+      }
+      
+      .checkbox-group {
+        margin-top: 10px;
+      }
+      
+      .member-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      
+      .member-table th, .member-table td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      .member-table th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+      }
+      
+      .member-table tr:hover {
+        background-color: #f5f5f5;
+      }
+      
+      .rank-indicator {
+        display: inline-block;
+        width: 25px;
+        height: 25px;
+        text-align: center;
+        font-weight: bold;
+        margin-right: 5px;
+        border-radius: 50%;
+        color: white;
+        line-height: 25px;
+      }
+      
+      .rank-R5 { background-color: #9c27b0; }
+      .rank-R4 { background-color: #f44336; }
+      .rank-R3 { background-color: #2196f3; }
+      .rank-R2 { background-color: #4caf50; }
+      .rank-R1 { background-color: #ff9800; }
+      .rank-X { background-color: #9e9e9e; }
+      
+      .status-Present { color: #4caf50; }
+      .status-Absent-Excused { color: #ff9800; }
+      .status-Absent-Unexcused { color: #f44336; }
+      .status-Not-Recorded { color: #9e9e9e; }
+      
+      .loading {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        z-index: 1000;
+        text-align: center;
+        padding-top: 250px;
+      }
+      
+      .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0 0 15px 0;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 8px;
+      }
+      
+      .summary {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+      }
+      
+      .summary-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .summary-stats {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      
+      .summary-stat {
+        margin-right: 15px;
+      }
+      
+      .secondary-selector {
+        margin-top: 10px;
+      }
+      
+      .close-button {
+        margin-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading" id="loading">
+      Loading data... Please wait.
+    </div>
+    
+    <div class="container">
+      <div class="left-panel">
+        <div class="section-title">Activity Viewer</div>
+        
+        <div class="tab-container">
+          <div class="tab active" id="by-date-tab">By Date</div>
+          <div class="tab" id="by-activity-tab">By Activity</div>
+        </div>
+        
+        <div id="by-date-content" class="tab-content active">
+          <div class="block">
+            <div class="label">Select Date:</div>
+            <select id="date-selector" class="width-100">
+              <option value="">-- Select Date --</option>
+            </select>
+          </div>
+          
+          <div class="block secondary-selector" id="date-activities-block" style="display: none;">
+            <div class="label">Select Activity:</div>
+            <select id="date-activities-selector" class="width-100">
+              <option value="">-- Select Activity --</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="by-activity-content" class="tab-content">
+          <div class="block">
+            <div class="label">Select Activity:</div>
+            <select id="activity-selector" class="width-100">
+              <option value="">-- Select Activity --</option>
+            </select>
+          </div>
+          
+          <div class="block secondary-selector" id="activity-dates-block" style="display: none;">
+            <div class="label">Select Date:</div>
+            <select id="activity-dates-selector" class="width-100">
+              <option value="">-- Select Date --</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="filter-options" id="filter-options" style="display: none;">
+          <div class="label">Display Options:</div>
+          <div class="checkbox-group">
+            <label><input type="checkbox" id="show-present" checked> Present</label><br>
+            <label><input type="checkbox" id="show-absent-excused" checked> Absent (Excused)</label><br>
+            <label><input type="checkbox" id="show-absent-unexcused" checked> Absent (Unexcused)</label><br>
+            <label><input type="checkbox" id="show-not-recorded" checked> Not Recorded</label><br>
+            <label><input type="checkbox" id="show-inactive"> Inactive Members</label>
+          </div>
+        </div>
+        
+        <div class="close-button">
+          <button class="action" id="close-button">Close</button>
+        </div>
+      </div>
+      
+      <div class="right-panel">
+        <div class="section-title" id="content-title">Select a date or activity to view details</div>
+        
+        <div id="content-container">
+          <!-- Content will be loaded here -->
+          <div style="text-align: center; padding: 50px; color: #888;">
+            Please select a date and activity to view member participation records
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Global variables
+      var currentActivityId = null;
+      var currentDate = null;
+      var memberData = null;
+      
+      // Initialize the page
+      document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching
+        document.getElementById('by-date-tab').addEventListener('click', function() {
+          switchTab('by-date');
+        });
+        
+        document.getElementById('by-activity-tab').addEventListener('click', function() {
+          switchTab('by-activity');
+        });
+        
+        // Load initial data
+        loadDates();
+        loadActivities();
+        
+        // Set up selectors
+        document.getElementById('date-selector').addEventListener('change', function() {
+          var selectedDate = this.value;
+          if (selectedDate) {
+            loadActivitiesForDate(selectedDate);
+          } else {
+            document.getElementById('date-activities-block').style.display = 'none';
+          }
+        });
+        
+        document.getElementById('activity-selector').addEventListener('change', function() {
+          var selectedActivity = this.value;
+          if (selectedActivity) {
+            loadDatesForActivity(selectedActivity);
+          } else {
+            document.getElementById('activity-dates-block').style.display = 'none';
+          }
+        });
+        
+        document.getElementById('date-activities-selector').addEventListener('change', function() {
+          var selectedActivity = this.value;
+          var selectedDate = document.getElementById('date-selector').value;
+          if (selectedActivity && selectedDate) {
+            loadMemberParticipation(selectedActivity, selectedDate);
+          }
+        });
+        
+        document.getElementById('activity-dates-selector').addEventListener('change', function() {
+          var selectedActivity = document.getElementById('activity-selector').value;
+          var selectedDate = this.value;
+          if (selectedActivity && selectedDate) {
+            loadMemberParticipation(selectedActivity, selectedDate);
+          }
+        });
+        
+        // Set up display filters
+        var filterCheckboxes = document.querySelectorAll('.filter-options input[type="checkbox"]');
+        filterCheckboxes.forEach(function(checkbox) {
+          checkbox.addEventListener('change', function() {
+            if (memberData) {
+              displayMemberData(memberData);
+            }
+          });
+        });
+        
+        // Close button
+        document.getElementById('close-button').addEventListener('click', function() {
+          google.script.host.close();
+        });
+      });
+      
+      // Switch between date and activity tabs
+      function switchTab(tabId) {
+        // Update tab buttons
+        document.getElementById('by-date-tab').classList.remove('active');
+        document.getElementById('by-activity-tab').classList.remove('active');
+        document.getElementById(tabId + '-tab').classList.add('active');
+        
+        // Update tab content
+        document.getElementById('by-date-content').classList.remove('active');
+        document.getElementById('by-activity-content').classList.remove('active');
+        document.getElementById(tabId + '-content').classList.add('active');
+      }
+      
+      // Load all dates with activity records
+      function loadDates() {
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function(dates) {
+            var dateSelector = document.getElementById('date-selector');
+            
+            // Clear existing options except the first one
+            while (dateSelector.options.length > 1) {
+              dateSelector.remove(1);
+            }
+            
+            // Add dates
+            dates.forEach(function(date) {
+              var option = document.createElement('option');
+              option.value = date;
+              option.textContent = date;
+              dateSelector.appendChild(option);
+            });
+            
+            document.getElementById('loading').style.display = 'none';
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            alert('Failed to load dates: ' + error);
+            document.getElementById('loading').style.display = 'none';
+          })
+          .getActivityDates();
+      }
+      
+      // Load all activities with records
+      function loadActivities() {
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function(activities) {
+            var activitySelector = document.getElementById('activity-selector');
+            
+            // Clear existing options except the first one
+            while (activitySelector.options.length > 1) {
+              activitySelector.remove(1);
+            }
+            
+            // Add activities
+            activities.forEach(function(activity) {
+              var option = document.createElement('option');
+              option.value = activity.id;
+              option.textContent = activity.name;
+              activitySelector.appendChild(option);
+            });
+            
+            document.getElementById('loading').style.display = 'none';
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            alert('Failed to load activities: ' + error);
+            document.getElementById('loading').style.display = 'none';
+          })
+          .getActivitiesWithRecords();
+      }
+      
+      // Load activities for a selected date
+      function loadActivitiesForDate(date) {
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function(activities) {
+            var activitySelector = document.getElementById('date-activities-selector');
+            
+            // Clear existing options except the first one
+            while (activitySelector.options.length > 1) {
+              activitySelector.remove(1);
+            }
+            
+            // Add activities
+            activities.forEach(function(activity) {
+              var option = document.createElement('option');
+              option.value = activity.id;
+              option.textContent = activity.name;
+              activitySelector.appendChild(option);
+            });
+            
+            // Display the secondary selector
+            document.getElementById('date-activities-block').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            alert('Failed to load activities for date: ' + error);
+            document.getElementById('loading').style.display = 'none';
+          })
+          .getActivitiesForDate(date);
+      }
+      
+      // Load dates for a selected activity
+      function loadDatesForActivity(activityId) {
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function(dates) {
+            var dateSelector = document.getElementById('activity-dates-selector');
+            
+            // Clear existing options except the first one
+            while (dateSelector.options.length > 1) {
+              dateSelector.remove(1);
+            }
+            
+            // Add dates
+            dates.forEach(function(date) {
+              var option = document.createElement('option');
+              option.value = date;
+              option.textContent = date;
+              dateSelector.appendChild(option);
+            });
+            
+            // Display the secondary selector
+            document.getElementById('activity-dates-block').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            alert('Failed to load dates for activity: ' + error);
+            document.getElementById('loading').style.display = 'none';
+          })
+          .getDatesForActivity(activityId);
+      }
+      
+      // Load member participation data
+      function loadMemberParticipation(activityId, date) {
+        document.getElementById('loading').style.display = 'block';
+        
+        currentActivityId = activityId;
+        currentDate = date;
+        
+        google.script.run
+          .withSuccessHandler(function(data) {
+            document.getElementById('loading').style.display = 'none';
+            
+            if (data.error) {
+              alert('Error: ' + data.error);
+              return;
+            }
+            
+            // Store the retrieved data
+            memberData = data;
+            
+            // Display the data
+            displayMemberData(data);
+            
+            // Show filter options
+            document.getElementById('filter-options').style.display = 'block';
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            alert('Failed to load member participation: ' + error);
+            document.getElementById('loading').style.display = 'none';
+          })
+          .getMemberParticipation(activityId, date);
+      }
+      
+      // Display member participation data
+      function displayMemberData(data) {
+        var container = document.getElementById('content-container');
+        var title = document.getElementById('content-title');
+        
+        // Update title
+        title.textContent = data.activityDetails.name + ' - ' + data.date;
+        
+        // Get filter states
+        var showPresent = document.getElementById('show-present').checked;
+        var showAbsentExcused = document.getElementById('show-absent-excused').checked;
+        var showAbsentUnexcused = document.getElementById('show-absent-unexcused').checked;
+        var showNotRecorded = document.getElementById('show-not-recorded').checked;
+        var showInactive = document.getElementById('show-inactive').checked;
+        
+        // Create table
+        var tableHtml = '<table class="member-table">';
+        tableHtml += '<thead><tr>';
+        tableHtml += '<th>Member ID</th>';
+        tableHtml += '<th>Name</th>';
+        tableHtml += '<th>Rank</th>';
+        tableHtml += '<th>Status</th>';
+        
+        // Add score column for score-type activities
+        if (data.activityDetails.type === 'Score') {
+          tableHtml += '<th>Score</th>';
+        }
+        
+        tableHtml += '</tr></thead><tbody>';
+        
+        // Filter and add active members
+        var presentCount = 0;
+        var absentExcusedCount = 0;
+        var absentUnexcusedCount = 0;
+        var notRecordedCount = 0;
+        var inactiveCount = 0;
+        var shownCount = 0;
+        
+        // Process active members
+        data.activeMembers.forEach(function(member) {
+          // Count by status
+          if (member.status === 'Present') {
+            presentCount++;
+          } else if (member.status === 'Absent-Excused') {
+            absentExcusedCount++;
+          } else if (member.status === 'Absent-Unexcused') {
+            absentUnexcusedCount++;
+          } else {
+            notRecordedCount++;
+          }
+          
+          // Check if we should display this member based on filters
+          var shouldDisplay = 
+            (member.status === 'Present' && showPresent) ||
+            (member.status === 'Absent-Excused' && showAbsentExcused) ||
+            (member.status === 'Absent-Unexcused' && showAbsentUnexcused) ||
+            (member.status === 'Not Recorded' && showNotRecorded);
+          
+          if (shouldDisplay) {
+            shownCount++;
+            tableHtml += '<tr>';
+            tableHtml += '<td>' + member.id + '</td>';
+            tableHtml += '<td>' + member.name + '</td>';
+            tableHtml += '<td><span class="rank-indicator rank-' + member.rank + '">' + member.rank + '</span></td>';
+            tableHtml += '<td class="status-' + member.status.replace(/\s/g, '-') + '">' + member.status + '</td>';
+            
+            // Add score for score-type activities
+            if (data.activityDetails.type === 'Score') {
+              tableHtml += '<td>' + (member.score || '') + '</td>';
+            }
+            
+            tableHtml += '</tr>';
+          }
+        });
+        
+        // Process inactive members if showing them
+        if (showInactive) {
+          data.inactiveMembers.forEach(function(member) {
+            inactiveCount++;
+            shownCount++;
+            
+            tableHtml += '<tr>';
+            tableHtml += '<td>' + member.id + '</td>';
+            tableHtml += '<td>' + member.name + '</td>';
+            tableHtml += '<td><span class="rank-indicator rank-' + member.rank + '">' + member.rank + '</span></td>';
+            tableHtml += '<td>' + member.status + ' (Inactive)</td>';
+            
+            // Add score for score-type activities
+            if (data.activityDetails.type === 'Score') {
+              tableHtml += '<td>' + (member.score || '') + '</td>';
+            }
+            
+            tableHtml += '</tr>';
+          });
+        }
+        
+        tableHtml += '</tbody></table>';
+        
+        // Create summary section
+        var summaryHtml = '<div class="summary">';
+        summaryHtml += '<div class="summary-title">Summary</div>';
+        summaryHtml += '<div class="summary-stats">';
+        summaryHtml += '<div class="summary-stat">Present: ' + presentCount + '</div>';
+        summaryHtml += '<div class="summary-stat">Absent (Excused): ' + absentExcusedCount + '</div>';
+        summaryHtml += '<div class="summary-stat">Absent (Unexcused): ' + absentUnexcusedCount + '</div>';
+        summaryHtml += '<div class="summary-stat">Not Recorded: ' + notRecordedCount + '</div>';
+        summaryHtml += '<div class="summary-stat">Inactive: ' + inactiveCount + '</div>';
+        summaryHtml += '</div>';
+        summaryHtml += '<div style="margin-top: 5px;">Currently showing: ' + shownCount + ' members</div>';
+        summaryHtml += '</div>';
+        
+        // Set container content
+        container.innerHTML = tableHtml + summaryHtml;
+      }
+    </script>
+  </body>
+</html>

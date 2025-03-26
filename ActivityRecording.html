@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      .container {
+        display: flex;
+        height: 100vh;
+        max-height: 580px;
+        overflow: hidden;
+      }
+      
+      .left-panel {
+        width: 300px;
+        padding: 15px;
+        border-right: 1px solid #ddd;
+        overflow-y: auto;
+        background-color: #f8f8f8;
+      }
+      
+      .right-panel {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+      }
+      
+      .block {
+        margin-bottom: 15px;
+      }
+      
+      .label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .error {
+        color: red;
+        font-size: 0.9em;
+        margin-top: 5px;
+        display: none;
+      }
+      
+      .member-list {
+        margin-top: 15px;
+        max-height: 450px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+      }
+      
+      .member-item {
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .member-item:last-child {
+        border-bottom: none;
+      }
+      
+      .activity-path {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 5px;
+      }
+      
+      .activity-details {
+        background-color: #f5f5f5;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 4px;
+        display: none;
+      }
+      
+      .batch-actions {
+        margin: 10px 0;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+      }
+      
+      .rank-indicator {
+        display: inline-block;
+        width: 25px;
+        text-align: center;
+        font-weight: bold;
+        margin-right: 5px;
+      }
+      
+      .rank-R5 { color: #9c27b0; }
+      .rank-R4 { color: #f44336; }
+      .rank-R3 { color: #2196f3; }
+      .rank-R2 { color: #4caf50; }
+      .rank-R1 { color: #ff9800; }
+      
+      .loading {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        z-index: 1000;
+        text-align: center;
+        padding-top: 250px;
+      }
+      
+      .success-message {
+        color: green;
+        display: none;
+        padding: 10px;
+        margin-top: 10px;
+        text-align: center;
+        font-weight: bold;
+        background-color: #e6f7e6;
+        border-radius: 4px;
+      }
+      
+      .activity-level-container {
+        margin-bottom: 15px;
+        border: 1px solid #f0f0f0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      
+      .level-indicator {
+        display: inline-block;
+        background-color: #e6f7f0;
+        color: #1a8754;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.8em;
+        margin-left: 10px;
+      }
+      
+      .current-selection-info {
+        background-color: #e6f7ff;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        border-left: 4px solid #1890ff;
+      }
+      
+      .selection-badges {
+        display: flex;
+        margin-bottom: 15px;
+      }
+      
+      .selection-badge {
+        padding: 5px 10px;
+        border-radius: 15px;
+        margin-right: 10px;
+        font-size: 0.9em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+      }
+      
+      .level1-badge {
+        background-color: #e6e6fa;
+        color: #5c5c8a;
+      }
+      
+      .level2-badge {
+        background-color: #e6ffe6;
+        color: #366b36;
+      }
+      
+      .level3-badge {
+        background-color: #fff2e6;
+        color: #a6551d;
+      }
+      
+      .page-title {
+        margin-top: 0;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+      }
+      
+      .action-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .action-buttons button {
+        padding: 8px 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading" id="loading">
+      處理中... 請稍候。
+    </div>
+    
+    <div class="container">
+      <div class="left-panel">
+        <h3 class="page-title">活動選擇</h3>
+        
+        <div class="block">
+          <div class="label">日期：</div>
+          <input type="date" id="activity-date" class="width-100">
+          <div id="date-error" class="error">Please select a date</div>
+        </div>
+        
+        <div class="activity-level-container">
+          <h4>選擇活動 <span class="level-indicator" id="activity-level-indicator"></span></h4>
+          
+          <div class="block activity-selection">
+            <div class="label">一級活動：</div>
+            <select id="level1-activity" class="width-100">
+              <option value="">-- 選擇一級活動 --</option>
+            </select>
+            <div id="level1-error" class="error">Please select a level 1 activity</div>
+          </div>
+          
+          <div class="block activity-selection" id="level2-block" style="display: none;">
+            <div class="label">二級活動：</div>
+            <select id="level2-activity" class="width-100">
+              <option value="">-- 選擇二級活動 --</option>
+            </select>
+            <div id="level2-error" class="error">Please select a level 2 activity</div>
+          </div>
+          
+          <div class="block activity-selection" id="level3-block" style="display: none;">
+            <div class="label">三級活動：</div>
+            <select id="level3-activity" class="width-100">
+              <option value="">-- 選擇三級活動 --</option>
+            </select>
+            <div id="level3-error" class="error">Please select a level 3 activity</div>
+          </div>
+          
+          <div class="selection-badges" id="selection-badges" style="display: none;">
+            <!-- Selection badges will be added here dynamically -->
+          </div>
+        </div>
+        
+        <div class="current-selection-info" id="current-selection-info" style="display: none;">
+          <div><strong>當前使用：</strong> <span id="selected-level-name">無選擇</span></div>
+          <div id="selected-level-path" style="font-size: 0.9em; color: #666;"></div>
+        </div>
+        
+        <div class="activity-path" id="activity-path"></div>
+        
+        <div class="activity-details" id="activity-details">
+          <div id="activity-type-display"></div>
+          <div id="activity-weight-display"></div>
+          <div id="activity-threshold-display"></div>
+        </div>
+        
+        <div class="batch-actions" id="batch-actions" style="display: none;">
+          <div class="label">批次操作：</div>
+          <div id="attendance-batch" style="display: none;">
+            <button class="action" id="all-present">全部出席</button>
+            <button class="action" id="all-absent-excused">全部請假</button>
+            <button class="action" id="all-absent-unexcused">全部無故缺席</button>
+            <button class="action" id="clear-all-selections">清除所有選擇</button>
+          </div>
+          <div id="score-batch" style="display: none;">
+            <button class="action" id="clear-all-scores">清除所有分數</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="right-panel">
+        <h3 class="page-title">成員參與</h3>
+        
+        <div class="block">
+          <div class="label">成員：</div>
+          <div id="member-list" class="member-list">
+            <div style="text-align: center; padding: 20px; color: #888;">
+              請先選擇一個活動
+            </div>
+          </div>
+        </div>
+        
+        <div class="success-message" id="success-message"></div>
+        
+        <div class="action-buttons">
+          <button class="action" id="save-button">儲存記錄</button>
+          <button class="action" id="cancel-button">取消</button>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Initialize the form when the page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        // Set default date to today
+        document.getElementById('activity-date').valueAsDate = new Date();
+        
+        // Load activities for dropdowns
+        google.script.run
+          .withSuccessHandler(populateActivities)
+          .withFailureHandler(showError)
+          .getActivities();
+        
+        // Load members list
+        google.script.run
+          .withSuccessHandler(populateMembersList)
+          .withFailureHandler(showError)
+          .getActiveMembers();
+        
+        // Add event listeners
+        document.getElementById('level1-activity').addEventListener('change', handleLevel1Change);
+        document.getElementById('level2-activity').addEventListener('change', handleLevel2Change);
+        document.getElementById('level3-activity').addEventListener('change', handleLevel3Change);
+        
+        // Batch action buttons
+        document.getElementById('all-present').addEventListener('click', function() {
+          setAllAttendanceStatus('Present');
+        });
+        document.getElementById('all-absent-excused').addEventListener('click', function() {
+          setAllAttendanceStatus('Absent-Excused');
+        });
+        document.getElementById('all-absent-unexcused').addEventListener('click', function() {
+          setAllAttendanceStatus('Absent-Unexcused');
+        });
+        document.getElementById('clear-all-scores').addEventListener('click', clearAllScores);
+        document.getElementById('clear-all-selections').addEventListener('click', clearAllSelections);
+        
+        // Save and cancel buttons
+        document.getElementById('save-button').addEventListener('click', saveRecords);
+        document.getElementById('cancel-button').addEventListener('click', function() {
+          google.script.host.close();
+        });
+      });
+      
+      // Global variables to store activities data
+      var activitiesData = {
+        level1: [],
+        level2: {},
+        level3: {}
+      };
+      
+      // Global variables to store the currently selected activity
+      var selectedActivity = {
+        level1: null,
+        level2: null,
+        level3: null,
+        final: null
+      };
+      
+      // Global variable to store all members
+      var allMembers = [];
+      
+      // Populate activities dropdowns
+      function populateActivities(activities) {
+        activitiesData = activities;
+        var level1Select = document.getElementById('level1-activity');
+        
+        // Clear any existing options except the first one
+        while (level1Select.options.length > 1) {
+          level1Select.remove(1);
+        }
+        
+        // Add level 1 activities
+        activities.level1.forEach(function(activity) {
+          var option = document.createElement('option');
+          option.value = activity.id;
+          option.textContent = activity.name;
+          option.dataset.type = activity.type;
+          option.dataset.baseWeight = activity.baseWeight;
+          option.dataset.minThreshold = activity.minThreshold;
+          option.dataset.maxThreshold = activity.maxThreshold;
+          level1Select.appendChild(option);
+        });
+      }
+      
+      // Handle level 1 activity selection
+      function handleLevel1Change() {
+        var level1Select = document.getElementById('level1-activity');
+        var level2Block = document.getElementById('level2-block');
+        var level2Select = document.getElementById('level2-activity');
+        var level3Block = document.getElementById('level3-block');
+        
+        // Reset lower level selections
+        resetLevel2Selection();
+        resetLevel3Selection();
+        
+        // Hide batch actions and member form initially
+        document.getElementById('batch-actions').style.display = 'none';
+        clearMemberForm();
+        
+        if (level1Select.value) {
+          selectedActivity.level1 = {
+            id: level1Select.value,
+            name: level1Select.options[level1Select.selectedIndex].text,
+            type: level1Select.options[level1Select.selectedIndex].dataset.type,
+            baseWeight: level1Select.options[level1Select.selectedIndex].dataset.baseWeight,
+            minThreshold: level1Select.options[level1Select.selectedIndex].dataset.minThreshold,
+            maxThreshold: level1Select.options[level1Select.selectedIndex].dataset.maxThreshold
+          };
+          
+          // Set as final selection immediately
+          selectedActivity.final = selectedActivity.level1;
+          
+          // Update activity path
+          updateActivityPath();
+          
+          // Show activity details and prepare member form for this level
+          showActivityDetails(selectedActivity.final);
+          prepareMemberForm(selectedActivity.final);
+          
+          // Check if there are level 2 activities for this parent
+          if (activitiesData.level2[selectedActivity.level1.id] && 
+              activitiesData.level2[selectedActivity.level1.id].length > 0) {
+            
+            // Clear level 2 dropdown except first option
+            while (level2Select.options.length > 1) {
+              level2Select.remove(1);
+            }
+            
+            // Add level 2 activities
+            activitiesData.level2[selectedActivity.level1.id].forEach(function(activity) {
+              var option = document.createElement('option');
+              option.value = activity.id;
+              option.textContent = activity.name;
+              option.dataset.type = activity.type;
+              option.dataset.baseWeight = activity.baseWeight;
+              option.dataset.minThreshold = activity.minThreshold;
+              option.dataset.maxThreshold = activity.maxThreshold;
+              level2Select.appendChild(option);
+            });
+            
+            // Show level 2 selection
+            level2Block.style.display = 'block';
+          } 
+        } else {
+          // No selection, reset everything
+          selectedActivity.level1 = null;
+          selectedActivity.final = null;
+          document.getElementById('activity-path').textContent = '';
+          document.getElementById('activity-details').style.display = 'none';
+          document.getElementById('current-selection-info').style.display = 'none';
+        }
+      }
+      
+      // Handle level 2 activity selection
+      function handleLevel2Change() {
+        var level2Select = document.getElementById('level2-activity');
+        var level3Block = document.getElementById('level3-block');
+        var level3Select = document.getElementById('level3-activity');
+        
+        // Reset level 3 selection
+        resetLevel3Selection();
+        
+        // Hide batch actions and member form initially
+        document.getElementById('batch-actions').style.display = 'none';
+        clearMemberForm();
+        
+        if (level2Select.value) {
+          selectedActivity.level2 = {
+            id: level2Select.value,
+            name: level2Select.options[level2Select.selectedIndex].text,
+            type: level2Select.options[level2Select.selectedIndex].dataset.type,
+            baseWeight: level2Select.options[level2Select.selectedIndex].dataset.baseWeight,
+            minThreshold: level2Select.options[level2Select.selectedIndex].dataset.minThreshold,
+            maxThreshold: level2Select.options[level2Select.selectedIndex].dataset.maxThreshold
+          };
+          
+          // Set as final selection immediately
+          selectedActivity.final = selectedActivity.level2;
+          
+          // Update activity path
+          updateActivityPath();
+          
+          // Show activity details and prepare member form for this level
+          showActivityDetails(selectedActivity.final);
+          prepareMemberForm(selectedActivity.final);
+          
+          // Check if there are level 3 activities for this parent
+          if (activitiesData.level3[selectedActivity.level2.id] && 
+              activitiesData.level3[selectedActivity.level2.id].length > 0) {
+            
+            // Clear level 3 dropdown except first option
+            while (level3Select.options.length > 1) {
+              level3Select.remove(1);
+            }
+            
+            // Add level 3 activities
+            activitiesData.level3[selectedActivity.level2.id].forEach(function(activity) {
+              var option = document.createElement('option');
+              option.value = activity.id;
+              option.textContent = activity.name;
+              option.dataset.type = activity.type;
+              option.dataset.baseWeight = activity.baseWeight;
+              option.dataset.minThreshold = activity.minThreshold;
+              option.dataset.maxThreshold = activity.maxThreshold;
+              level3Select.appendChild(option);
+            });
+            
+            // Show level 3 selection
+            level3Block.style.display = 'block';
+          }
+        } else {
+          // No selection, reset to level 1
+          selectedActivity.level2 = null;
+          selectedActivity.final = selectedActivity.level1;
+          updateActivityPath();
+          
+          if (selectedActivity.final) {
+            showActivityDetails(selectedActivity.final);
+            prepareMemberForm(selectedActivity.final);
+          }
+        }
+      }
+      
+      // Handle level 3 activity selection
+      function handleLevel3Change() {
+        var level3Select = document.getElementById('level3-activity');
+        
+        // Hide batch actions and member form initially
+        document.getElementById('batch-actions').style.display = 'none';
+        clearMemberForm();
+        
+        if (level3Select.value) {
+          selectedActivity.level3 = {
+            id: level3Select.value,
+            name: level3Select.options[level3Select.selectedIndex].text,
+            type: level3Select.options[level3Select.selectedIndex].dataset.type,
+            baseWeight: level3Select.options[level3Select.selectedIndex].dataset.baseWeight,
+            minThreshold: level3Select.options[level3Select.selectedIndex].dataset.minThreshold,
+            maxThreshold: level3Select.options[level3Select.selectedIndex].dataset.maxThreshold
+          };
+          
+          // Set as final selection
+          selectedActivity.final = selectedActivity.level3;
+          
+          // Update activity path
+          updateActivityPath();
+          
+          // Show activity details and prepare member form
+          showActivityDetails(selectedActivity.final);
+          prepareMemberForm(selectedActivity.final);
+        } else {
+          // No selection, reset to level 2
+          selectedActivity.level3 = null;
+          selectedActivity.final = selectedActivity.level2;
+          updateActivityPath();
+          
+          if (selectedActivity.final) {
+            showActivityDetails(selectedActivity.final);
+            prepareMemberForm(selectedActivity.final);
+          }
+        }
+      }
+      
+      // Reset level 2 selection
+      function resetLevel2Selection() {
+        var level2Block = document.getElementById('level2-block');
+        var level2Select = document.getElementById('level2-activity');
+        level2Select.value = '';
+        level2Block.style.display = 'none';
+        selectedActivity.level2 = null;
+      }
+      
+      // Reset level 3 selection
+      function resetLevel3Selection() {
+        var level3Block = document.getElementById('level3-block');
+        var level3Select = document.getElementById('level3-activity');
+        level3Select.value = '';
+        level3Block.style.display = 'none';
+        selectedActivity.level3 = null;
+      }
+      
+      // Update selection badges
+      function updateSelectionBadges() {
+        var badgesContainer = document.getElementById('selection-badges');
+        badgesContainer.innerHTML = '';
+        
+        if (selectedActivity.level1) {
+          var level1Badge = document.createElement('div');
+          level1Badge.className = 'selection-badge level1-badge';
+          level1Badge.textContent = selectedActivity.level1.name;
+          level1Badge.title = selectedActivity.level1.name;
+          badgesContainer.appendChild(level1Badge);
+          
+          if (selectedActivity.level2) {
+            var level2Badge = document.createElement('div');
+            level2Badge.className = 'selection-badge level2-badge';
+            level2Badge.textContent = selectedActivity.level2.name;
+            level2Badge.title = selectedActivity.level2.name;
+            badgesContainer.appendChild(level2Badge);
+            
+            if (selectedActivity.level3) {
+              var level3Badge = document.createElement('div');
+              level3Badge.className = 'selection-badge level3-badge';
+              level3Badge.textContent = selectedActivity.level3.name;
+              level3Badge.title = selectedActivity.level3.name;
+              badgesContainer.appendChild(level3Badge);
+            }
+          }
+          
+          badgesContainer.style.display = 'flex';
+        } else {
+          badgesContainer.style.display = 'none';
+        }
+        
+        // Update level indicator
+        var levelIndicator = document.getElementById('activity-level-indicator');
+        if (selectedActivity.final) {
+          var level = selectedActivity.level3 ? "Level 3" : (selectedActivity.level2 ? "Level 2" : "Level 1");
+          levelIndicator.textContent = level;
+          levelIndicator.style.display = 'inline-block';
+        } else {
+          levelIndicator.style.display = 'none';
+        }
+      }
+      
+      // Update activity path display
+      function updateActivityPath() {
+        var pathEl = document.getElementById('activity-path');
+        var path = '';
+        
+        var selectedLevelNameEl = document.getElementById('selected-level-name');
+        var selectedLevelPathEl = document.getElementById('selected-level-path');
+        
+        if (selectedActivity.level1) {
+          path = selectedActivity.level1.name;
+          
+          if (selectedActivity.level2) {
+            path += ' > ' + selectedActivity.level2.name;
+            
+            if (selectedActivity.level3) {
+              path += ' > ' + selectedActivity.level3.name;
+            }
+          }
+        }
+        
+        pathEl.textContent = path;
+        
+        // Update the selected level indicator
+        if (selectedActivity.final) {
+          selectedLevelNameEl.textContent = selectedActivity.final.name;
+          selectedLevelPathEl.textContent = 'Path: ' + path;
+          document.getElementById('current-selection-info').style.display = 'block';
+        } else {
+          selectedLevelNameEl.textContent = 'No selection';
+          selectedLevelPathEl.textContent = '';
+          document.getElementById('current-selection-info').style.display = 'none';
+        }
+        
+        // Update selection badges
+        updateSelectionBadges();
+      }
+      
+      // Show activity details
+      function showActivityDetails(activity) {
+        var detailsEl = document.getElementById('activity-details');
+        var typeEl = document.getElementById('activity-type-display');
+        var weightEl = document.getElementById('activity-weight-display');
+        var thresholdEl = document.getElementById('activity-threshold-display');
+        
+        typeEl.textContent = 'Type: ' + activity.type;
+        weightEl.textContent = 'Base Weight: ' + activity.baseWeight;
+        
+        if (activity.type === 'Score') {
+          thresholdEl.textContent = 'Thresholds: Min=' + activity.minThreshold + ', Max=' + activity.maxThreshold;
+          thresholdEl.style.display = 'block';
+        } else {
+          thresholdEl.style.display = 'none';
+        }
+        
+        detailsEl.style.display = 'block';
+      }
+      
+      // Clear member form
+      function clearMemberForm() {
+        var memberListEl = document.getElementById('member-list');
+        memberListEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">請先選擇一個活動</div>';
+      }
+      
+      // Populate members list
+      function populateMembersList(members) {
+        allMembers = members;
+      }
+      
+      // Prepare member form based on selected activity
+      function prepareMemberForm(activity) {
+        var memberListEl = document.getElementById('member-list');
+        memberListEl.innerHTML = '';
+        
+        if (!allMembers || allMembers.length === 0) {
+          memberListEl.innerHTML = '<div style="text-align: center; padding: 20px;">No active members found.</div>';
+          return;
+        }
+        
+        // Set up batch actions
+        var batchActionsEl = document.getElementById('batch-actions');
+        var attendanceBatchEl = document.getElementById('attendance-batch');
+        var scoreBatchEl = document.getElementById('score-batch');
+        
+        if (activity.type === 'Attendance') {
+          attendanceBatchEl.style.display = 'block';
+          scoreBatchEl.style.display = 'none';
+        } else {
+          attendanceBatchEl.style.display = 'none';
+          scoreBatchEl.style.display = 'block';
+        }
+        
+        batchActionsEl.style.display = 'block';
+        
+        // Create member inputs
+        allMembers.forEach(function(member) {
+          var memberItem = document.createElement('div');
+          memberItem.className = 'member-item';
+          
+          var rankIndicator = document.createElement('span');
+          rankIndicator.className = 'rank-indicator rank-' + member.rank;
+          rankIndicator.textContent = member.rank;
+          
+          var memberName = document.createElement('span');
+          memberName.textContent = member.name;
+          
+          memberItem.appendChild(rankIndicator);
+          memberItem.appendChild(memberName);
+          
+          // Add appropriate input based on activity type
+          if (activity.type === 'Attendance') {
+            var statusSelect = document.createElement('select');
+            statusSelect.id = 'status-' + member.id;
+            statusSelect.className = 'width-100';
+            statusSelect.style.marginTop = '5px';
+
+            // Add empty option as first option
+            var emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '-- Select Status --';
+            statusSelect.appendChild(emptyOption);
+
+            var presentOption = document.createElement('option');
+            presentOption.value = 'Present';
+            presentOption.textContent = '出席';
+            statusSelect.appendChild(presentOption);
+
+            var absentExcusedOption = document.createElement('option');
+            absentExcusedOption.value = 'Absent-Excused';
+            absentExcusedOption.textContent = '請假缺席';
+            statusSelect.appendChild(absentExcusedOption);
+
+            var absentUnexcusedOption = document.createElement('option');
+            absentUnexcusedOption.value = 'Absent-Unexcused';
+            absentUnexcusedOption.textContent = '無故缺席';
+            statusSelect.appendChild(absentUnexcusedOption);
+
+            memberItem.appendChild(statusSelect);
+          } else {
+            var scoreInput = document.createElement('input');
+            scoreInput.type = 'number';
+            scoreInput.id = 'score-' + member.id;
+            scoreInput.className = 'width-100';
+            scoreInput.placeholder = 'Enter score';
+            scoreInput.style.marginTop = '5px';
+            memberItem.appendChild(scoreInput);
+          }
+          
+          // Add notes field
+          var notesInput = document.createElement('input');
+          notesInput.type = 'text';
+          notesInput.id = 'notes-' + member.id;
+          notesInput.className = 'width-100';
+          notesInput.placeholder = 'Notes (optional)';
+          notesInput.style.marginTop = '5px';
+          memberItem.appendChild(notesInput);
+          
+          memberListEl.appendChild(memberItem);
+        });
+      }
+      
+      // Set all attendance status
+      function setAllAttendanceStatus(status) {
+        if (!allMembers) return;
+        
+        allMembers.forEach(function(member) {
+          var statusSelect = document.getElementById('status-' + member.id);
+          if (statusSelect) {
+            statusSelect.value = status;
+          }
+        });
+      }
+      
+      // Clear all scores
+      function clearAllScores() {
+        if (!allMembers) return;
+        
+        allMembers.forEach(function(member) {
+          var scoreInput = document.getElementById('score-' + member.id);
+          if (scoreInput) {
+            scoreInput.value = '';
+          }
+        });
+      }
+
+      function clearAllSelections() {
+        if (!window.allMembers) return;
+        
+        window.allMembers.forEach(function(member) {
+          var statusSelect = document.getElementById('status-' + member.id);
+          if (statusSelect) {
+            statusSelect.value = ''; // Set to empty option
+          }
+        });
+      }
+      
+      // Save records
+      function saveRecords() {
+        // Validate inputs
+        if (!validateForm()) {
+          return;
+        }
+        
+        // Show loading indicator
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('save-button').disabled = true;
+        
+        var activityDate = document.getElementById('activity-date').value;
+        var records = [];
+        
+        allMembers.forEach(function(member) {
+          var record = {
+            memberId: member.id,
+            activityId: selectedActivity.final.id,
+            date: activityDate
+          };
+          
+          if (selectedActivity.final.type === 'Attendance') {
+            var statusSelect = document.getElementById('status-' + member.id);
+            record.status = statusSelect.value;
+            record.score = '';
+          } else {
+            var scoreInput = document.getElementById('score-' + member.id);
+            record.score = scoreInput.value || '0';
+            record.status = 'N/A';
+          }
+          
+          var notesInput = document.getElementById('notes-' + member.id);
+          record.notes = notesInput.value || '';
+          
+          records.push(record);
+        });
+        
+        // Save to spreadsheet
+        google.script.run
+          .withSuccessHandler(function(count) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('save-button').disabled = false;
+            
+            var successMessage = document.getElementById('success-message');
+            successMessage.textContent = count + ' 條記錄儲存成功！';
+            successMessage.style.display = 'block';
+            
+            // Clear form after 2 seconds
+            setTimeout(function() {
+              resetForm();
+              successMessage.style.display = 'none';
+            }, 2000);
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('save-button').disabled = false;
+            showError(error);
+          })
+          .saveParticipationRecords(records);
+      }
+      
+      // Validate form
+      function validateForm() {
+        var valid = true;
+        
+        // Check date
+        var dateInput = document.getElementById('activity-date');
+        var dateError = document.getElementById('date-error');
+        if (!dateInput.value) {
+          dateError.style.display = 'block';
+          valid = false;
+        } else {
+          dateError.style.display = 'none';
+        }
+        
+        // Check if an activity is selected (any level)
+        if (!selectedActivity.final) {
+          valid = false;
+          showError('Please select an activity');
+        }
+        
+        return valid;
+      }
+      
+      // Reset form
+      function resetForm() {
+        document.getElementById('level1-activity').value = '';
+        resetLevel2Selection();
+        resetLevel3Selection();
+        
+        selectedActivity = {
+          level1: null,
+          level2: null,
+          level3: null,
+          final: null
+        };
+        
+        document.getElementById('activity-path').textContent = '';
+        document.getElementById('activity-details').style.display = 'none';
+        document.getElementById('batch-actions').style.display = 'none';
+        document.getElementById('current-selection-info').style.display = 'none';
+        clearMemberForm();
+      }
+      
+      // Show error
+      function showError(error) {
+        console.error(error);
+        alert('Error: ' + error);
+      }
+    </script>
+  </body>
+</html>

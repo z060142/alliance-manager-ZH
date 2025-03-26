@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      .container {
+        padding: 15px;
+      }
+      
+      .filter-panel {
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+      }
+      
+      .filter-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .checkbox-group {
+        display: flex;
+        gap: 15px;
+      }
+      
+      .rank-checkbox {
+        margin-right: 5px;
+      }
+      
+      .member-list {
+        height: 600px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      
+      .member-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      
+      .member-table th {
+        position: sticky;
+        top: 0;
+        background-color: #f0f0f0;
+        padding: 8px;
+        text-align: left;
+        border-bottom: 2px solid #ddd;
+      }
+      
+      .member-table td {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .rank-indicator {
+        display: inline-block;
+        width: 25px;
+        text-align: center;
+        font-weight: bold;
+        margin-right: 5px;
+        border-radius: 50%;
+        color: white;
+        padding: 2px;
+      }
+      
+      .rank-R5 { background-color: #9c27b0; }
+      .rank-R4 { background-color: #f44336; }
+      .rank-R3 { background-color: #2196f3; }
+      .rank-R2 { background-color: #4caf50; }
+      .rank-R1 { background-color: #ff9800; }
+      .rank-X { background-color: #9e9e9e; }
+      
+      .rank-count {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 10px;
+      }
+      
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100px;
+      }
+      
+      .position-number {
+        font-weight: bold;
+      }
+      
+      .alt-row {
+        background-color: #f9f9f9;
+      }
+      
+      .header-row {
+        font-weight: bold;
+        background-color: #e8e8e8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>成員總分排名</h2>
+      
+      <div class="filter-panel">
+        <div class="filter-title">選擇要顯示的等級：</div>
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" class="rank-checkbox" value="R5" checked> R5 (領導層)
+          </label>
+          <label>
+            <input type="checkbox" class="rank-checkbox" value="R4" checked> R4 (管理層)
+          </label>
+          <label>
+            <input type="checkbox" class="rank-checkbox" value="R3" checked> R3
+          </label>
+          <label>
+            <input type="checkbox" class="rank-checkbox" value="R2" checked> R2
+          </label>
+          <label>
+            <input type="checkbox" class="rank-checkbox" value="R1" checked> R1
+          </label>
+          <label>
+            <input type="checkbox" class="rank-checkbox" value="X"> X (非活躍)
+          </label>
+        </div>
+      </div>
+      
+      <div class="member-list">
+        <table class="member-table" id="member-table">
+          <thead>
+            <tr class="header-row">
+              <th>等級</th>
+              <th>排名</th>
+              <th>姓名</th>
+              <th>戰力</th>
+              <th>總分</th>
+              <th>最後活躍</th>
+            </tr>
+          </thead>
+          <tbody id="member-tbody">
+            <tr>
+              <td colspan="6" class="loading">Loading member data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="rank-count" id="rank-count"></div>
+    </div>
+    
+    <script>
+      // Store all members globally
+      var allMembers = [];
+      
+      // Filter states
+      var filterStates = {
+        'R5': true,
+        'R4': true,
+        'R3': true,
+        'R2': true,
+        'R1': true,
+        'X': false
+      };
+      
+      // Load members when page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        loadMembers();
+        
+        // Add event listeners to checkboxes
+        document.querySelectorAll('.rank-checkbox').forEach(function(checkbox) {
+          checkbox.addEventListener('change', function() {
+            var rank = this.value;
+            filterStates[rank] = this.checked;
+            updateMemberList();
+          });
+        });
+      });
+      
+      function loadMembers() {
+        google.script.run
+          .withSuccessHandler(function(members) {
+            allMembers = members;
+            updateMemberList();
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            document.getElementById('member-tbody').innerHTML = 
+              '<tr><td colspan="6" style="text-align: center; color: red;">Loading failed: ' + error + '</td></tr>';
+          })
+          .getRankedMembers();
+      }
+      
+      function updateMemberList() {
+        var tbody = document.getElementById('member-tbody');
+        tbody.innerHTML = '';
+        
+        // Filter members
+        var filteredMembers = allMembers.filter(function(member) {
+          return filterStates[member.rank];
+        });
+        
+        if (filteredMembers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">沒有符合所選過濾條件的成員</td></tr>';
+          document.getElementById('rank-count').textContent = '沒有顯示任何成員';
+          return;
+        }
+        
+        // Track rank counts and overall position
+        var rankCounts = { 'R5': 0, 'R4': 0, 'R3': 0, 'R2': 0, 'R1': 0, 'X': 0 };
+        var totalShown = 0;
+        
+        // Populate table
+        filteredMembers.forEach(function(member, index) {
+          var row = document.createElement('tr');
+          
+          // Add alternating row background
+          if (index % 2 === 1) {
+            row.className = 'alt-row';
+          }
+          
+          // Rank cell with color indicator
+          var rankCell = document.createElement('td');
+          var rankSpan = document.createElement('span');
+          rankSpan.className = 'rank-indicator rank-' + member.rank;
+          rankSpan.textContent = member.rank;
+          rankCell.appendChild(rankSpan);
+          row.appendChild(rankCell);
+          
+          // Rank position cell
+          var positionCell = document.createElement('td');
+          positionCell.className = 'position-number';
+          positionCell.textContent = '#' + (index + 1);
+          row.appendChild(positionCell);
+          
+          // Name cell
+          var nameCell = document.createElement('td');
+          nameCell.textContent = member.name;
+          row.appendChild(nameCell);
+          
+          // Power cell
+          var powerCell = document.createElement('td');
+          powerCell.textContent = typeof member.power === 'number' ? 
+                                member.power.toLocaleString() : member.power;
+          row.appendChild(powerCell);
+          
+          // Score cell
+          var scoreCell = document.createElement('td');
+          var score = typeof member.totalScore === 'number' ? 
+                     member.totalScore.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) :
+                     member.totalScore;
+          scoreCell.textContent = score;
+          row.appendChild(scoreCell);
+          
+          // Last active date cell
+          var lastActiveCell = document.createElement('td');
+          lastActiveCell.textContent = member.lastActive || 'N/A';
+          row.appendChild(lastActiveCell);
+          
+          tbody.appendChild(row);
+          
+          // Update rank counts
+          rankCounts[member.rank]++;
+          totalShown++;
+        });
+        
+        // Update rank count display
+        var countText = 'Showing ' + totalShown + ' members: ';
+        var countParts = [];
+        
+        if (rankCounts.R5 > 0) countParts.push(rankCounts.R5 + ' R5');
+        if (rankCounts.R4 > 0) countParts.push(rankCounts.R4 + ' R4');
+        if (rankCounts.R3 > 0) countParts.push(rankCounts.R3 + ' R3');
+        if (rankCounts.R2 > 0) countParts.push(rankCounts.R2 + ' R2');
+        if (rankCounts.R1 > 0) countParts.push(rankCounts.R1 + ' R1');
+        if (rankCounts.X > 0) countParts.push(rankCounts.X + ' Inactive');
+        
+        countText += countParts.join(', ');
+        document.getElementById('rank-count').textContent = countText;
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      .container {
+        display: flex;
+        height: 100vh;
+        max-height: 580px;
+      }
+      
+      .activity-tree {
+        width: 280px;
+        border-right: 1px solid #ccc;
+        overflow-y: auto;
+        padding: 10px;
+        background-color: #f8f8f8;
+      }
+      
+      .activity-details {
+        flex: 1;
+        padding: 10px 20px;
+        overflow-y: auto;
+      }
+      
+      .tab-container {
+        margin-bottom: 15px;
+        border-bottom: 1px solid #ccc;
+      }
+      
+      .tab {
+        display: inline-block;
+        padding: 8px 15px;
+        cursor: pointer;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        margin-right: 5px;
+        border-radius: 4px 4px 0 0;
+      }
+      
+      .tab.active {
+        background: #fff;
+        font-weight: bold;
+        position: relative;
+        bottom: -1px;
+        border-bottom: 1px solid #fff;
+      }
+      
+      .tree-item {
+        padding: 8px;
+        margin: 2px 0;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      
+      .tree-item:hover {
+        background-color: #e0e0e0;
+      }
+      
+      .tree-item.active {
+        background-color: #d0d0d0;
+        font-weight: bold;
+      }
+      
+      .level-1 {
+        background-color: #e6e6fa;
+      }
+      
+      .level-2 {
+        background-color: #e6ffe6;
+        margin-left: 15px;
+      }
+      
+      .level-3 {
+        background-color: #fff2e6;
+        margin-left: 30px;
+      }
+      
+      .add-activity-btn {
+        display: block;
+        margin: 15px auto;
+        padding: 8px 15px;
+      }
+      
+      .form-group {
+        margin-bottom: 15px;
+      }
+      
+      .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      
+      .form-help {
+        font-size: 0.85em;
+        color: #666;
+        margin-top: 2px;
+      }
+      
+      .action-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .action-buttons button {
+        padding: 8px 15px;
+      }
+      
+      .path-display {
+        margin-bottom: 15px;
+        padding: 8px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #666;
+      }
+      
+      .error-message {
+        color: red;
+        margin-top: 5px;
+        display: none;
+      }
+      
+      .success-message {
+        color: green;
+        margin-top: 5px;
+        display: none;
+      }
+      
+      .loading {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        z-index: 1000;
+        text-align: center;
+        padding-top: 250px;
+      }
+      
+      .delete-btn {
+        background-color: #f44336;
+        color: white;
+      }
+      
+      .milestone-section {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+      }
+      
+      .activity-title {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+        font-weight: bold;
+      }
+      
+      .activity-id {
+        font-family: monospace;
+        color: #666;
+      }
+      
+      .activity-level {
+        font-style: italic;
+        color: #333;
+      }
+      
+      .weight-info {
+        display: flex;
+        margin-bottom: 15px;
+      }
+      
+      .weight-box {
+        flex: 1;
+        padding: 10px;
+        margin-right: 10px;
+        background-color: #f8f8f8;
+        border-radius: 4px;
+        text-align: center;
+      }
+      
+      .weight-box:last-child {
+        margin-right: 0;
+      }
+      
+      .weight-box .label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .weight-box .value {
+        font-size: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading" id="loading">載入中...</div>
+    
+    <div class="container">
+      <div class="activity-tree" id="activity-tree">
+        <!-- Activity tree will be loaded here -->
+        <div style="text-align: center; padding: 20px;">載入活動中...</div>
+      </div>
+      
+      <div class="activity-details">
+        <div class="tab-container">
+          <div class="tab active" data-tab="details" id="details-tab">詳細資料</div>
+          <div class="tab" data-tab="add" id="add-tab">新增活動</div>
+        </div>
+        
+        <!-- Activity Details View -->
+        <div id="details-view">
+          <div class="path-display" id="activity-path">選擇一個活動查看詳細資料</div>
+          
+          <div id="no-selection" style="text-align: center; padding: 50px;">
+            未選擇任何活動，請從左側面板中選擇活動或新增一個新的活動。
+          </div>
+          
+          <div id="activity-details-content" style="display: none;">
+            <div class="activity-title" id="activity-name-display">活動名稱</div>
+            
+            <div style="margin-bottom: 15px;">
+              <span class="activity-id" id="activity-id-display">ID: ACT123</span>
+              <span class="activity-level" id="activity-level-display">層級: 1</span>
+            </div>
+            
+            <div class="weight-info">
+              <div class="weight-box">
+                <div class="label">相對權重</div>
+                <div class="value" id="relative-weight-display">50%</div>
+                <div class="form-help">相對於同層級活動的權重</div>
+              </div>
+              <div class="weight-box">
+                <div class="label">基礎點數</div>
+                <div class="value" id="base-points-display">0</div>
+                <div class="form-help">從總分1000分中分配</div>
+              </div>
+              <div class="weight-box">
+                <div class="label">類型</div>
+                <div class="value" id="type-display">分數型</div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-activity-name">活動名稱：</label>
+              <input type="text" id="edit-activity-name" class="width-100">
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-relative-weight">相對權重 (%)：</label>
+              <input type="number" id="edit-relative-weight" min="1" max="100" class="width-100">
+              <div class="form-help">相對於同層級活動的權重</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-activity-type">活動類型：</label>
+              <select id="edit-activity-type" class="width-100">
+                <option value="Score">分數型</option>
+                <option value="Attendance">僅出席</option>
+              </select>
+            </div>
+            
+            <div id="score-options">
+              <div class="milestone-section">
+                <h3>里程碑</h3>
+                <p>設定分數評估的閾值。低於最小閾值的分數會受到懲罰，高於最大閾值的分數會獲得獎勵。</p>
+                
+                <div class="form-group">
+                  <label for="edit-milestone-1">最小閾值：</label>
+                  <input type="number" id="edit-milestone-1" class="width-100">
+                  <div class="form-help">低於此值的分數會受到懲罰</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="edit-milestone-3">最大閾值：</label>
+                  <input type="number" id="edit-milestone-3" class="width-100">
+                  <div class="form-help">高於此值的分數會獲得獎勵</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="edit-low-score-factor">低分系數 (%)：</label>
+                  <input type="number" id="edit-low-score-factor" class="width-100" min="-100" max="0" step="5">
+                  <div class="form-help">低於最小閾值的分數懲罰百分比 (-20 表示減少20%的分數)</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="edit-high-score-factor">高分系數 (%)：</label>
+                  <input type="number" id="edit-high-score-factor" class="width-100" min="0" max="100" step="5">
+                  <div class="form-help">高於最大閾值的分數獎勵百分比 (20 表示增加20%的分數)</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-time-decay">啟用時間衰減：</label>
+              <select id="edit-time-decay" class="width-100">
+                <option value="true">是</option>
+                <option value="false">否</option>
+              </select>
+              <div class="form-help">如果啟用，此活動的影響會隨時間減少</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-decay-rate">衰減率：</label>
+              <input type="number" id="edit-decay-rate" min="0" max="1" step="0.01" class="width-100">
+              <div class="form-help">數值越高衰減越快 (0.05 = 每天5%)</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-description">描述：</label>
+              <textarea id="edit-description" rows="3" class="width-100"></textarea>
+            </div>
+            
+            <div id="edit-success" class="success-message">活動更新成功！</div>
+            <div id="edit-error" class="error-message">更新活動時發生錯誤</div>
+            
+            <div class="action-buttons">
+              <button class="action" id="save-edit-btn">儲存變更</button>
+              <button class="delete-btn" id="delete-activity-btn">刪除</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Add Activity View -->
+        <div id="add-view" style="display: none;">
+          <div class="path-display" id="parent-path">新增活動</div>
+          
+          <div class="form-group">
+            <label for="add-parent-activity">父活動：</label>
+            <select id="add-parent-activity" class="width-100">
+              <option value="">-- 頂層活動 --</option>
+              <!-- Parent options will be loaded here -->
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-activity-name">活動名稱：</label>
+            <input type="text" id="add-activity-name" class="width-100">
+            <div id="add-name-error" class="error-message">請輸入名稱</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-activity-level">層級：</label>
+            <select id="add-activity-level" class="width-100" disabled>
+              <option value="1">層級 1 (頂層)</option>
+              <option value="2">層級 2</option>
+              <option value="3">層級 3</option>
+            </select>
+            <div class="form-help">層級由父活動決定</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-relative-weight">相對權重 (%)：</label>
+            <input type="number" id="add-relative-weight" min="1" max="100" value="50" class="width-100">
+            <div class="form-help">相對於同層級活動的權重</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-activity-type">活動類型：</label>
+            <select id="add-activity-type" class="width-100">
+              <option value="Score">分數型</option>
+              <option value="Attendance">僅出席</option>
+            </select>
+          </div>
+          
+          <div id="add-score-options">
+            <div class="milestone-section">
+              <h3>里程碑</h3>
+              <p>設定分數評估的閾值。低於最低分數的分數會受到懲罰，高於最高分數的分數會受到獎勵。</p>
+              
+              <div class="form-group">
+                <label for="add-milestone-1">最小閾值：</label>
+                <input type="number" id="add-milestone-1" value="0" class="width-100">
+                <div class="form-help">低於此值的分數會受到懲罰</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="add-milestone-3">最大閾值：</label>
+                <input type="number" id="add-milestone-3" value="0" class="width-100">
+                <div class="form-help">高於此值的分數會獲得獎勵</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="add-low-score-factor">低分系數 (%)：</label>
+                <input type="number" id="add-low-score-factor" value="-20" class="width-100" min="-100" max="0" step="5">
+                <div class="form-help">低於最小閾值的分數懲罰百分比 (-20 表示減少20%的分數)</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="add-high-score-factor">高分系數 (%)：</label>
+                <input type="number" id="add-high-score-factor" value="20" class="width-100" min="0" max="100" step="5">
+                <div class="form-help">高於最大閾值的分數獎勵百分比 (20 表示增加20%的分數)</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-time-decay">啟用時間衰減：</label>
+            <select id="add-time-decay" class="width-100">
+              <option value="true">是</option>
+              <option value="false">否</option>
+            </select>
+            <div class="form-help">如果啟用，此活動的影響會隨時間減少</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-decay-rate">衰減率：</label>
+            <input type="number" id="add-decay-rate" min="0" max="1" step="0.01" value="0.05" class="width-100">
+            <div class="form-help">數值越高衰減越快 (0.05 = 每天5%)</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="add-description">描述：</label>
+            <textarea id="add-description" rows="3" class="width-100"></textarea>
+          </div>
+          
+          <div id="add-success" class="success-message">活動新增成功！</div>
+          <div id="add-error" class="error-message">新增活動時發生錯誤</div>
+          
+          <div class="action-buttons">
+            <button class="action" id="add-activity-btn">新增活動</button>
+            <button class="action" id="clear-add-form-btn">清除表單</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Global variables
+      var activityHierarchy = [];
+      var selectedActivity = null;
+      
+      // Initialize on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        // Load activity hierarchy
+        loadActivityHierarchy();
+        
+        // Set up tab switching
+        document.querySelectorAll('.tab').forEach(function(tab) {
+          tab.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+          });
+        });
+        
+        // Set up activity type change handlers
+        document.getElementById('edit-activity-type').addEventListener('change', toggleScoreOptions);
+        document.getElementById('add-activity-type').addEventListener('change', toggleAddScoreOptions);
+        
+        // Set up parent activity change handler
+        document.getElementById('add-parent-activity').addEventListener('change', updateActivityLevel);
+        
+        // Set up form submission handlers
+        document.getElementById('save-edit-btn').addEventListener('click', saveActivityChanges);
+        document.getElementById('add-activity-btn').addEventListener('click', addNewActivity);
+        document.getElementById('clear-add-form-btn').addEventListener('click', clearAddForm);
+        document.getElementById('delete-activity-btn').addEventListener('click', deleteSelectedActivity);
+      });
+
+      /**
+       * Calculate base points for all activities in the hierarchy
+       */
+      function calculateBasePoints(activities) {
+        // Calculate total weight for level 1 activities
+        var level1Activities = activities.filter(function(a) { return a.level == 1; });
+        var totalWeight = 0;
+        level1Activities.forEach(function(a) { totalWeight += a.baseWeight; });
+        
+        // Distribute 1000 points among level 1 activities
+        level1Activities.forEach(function(activity) {
+          activity.basePoints = Math.round(1000 * (activity.baseWeight / totalWeight));
+          calculateChildBasePoints(activity, activities);
+        });
+        
+        return activities;
+      }
+
+      /**
+       * Recursively calculate base points for child activities
+       */
+      function calculateChildBasePoints(parent, allActivities) {
+        if (!parent.children || parent.children.length === 0) return;
+        
+        // Calculate total weight for children
+        var totalChildWeight = 0;
+        parent.children.forEach(function(child) { totalChildWeight += child.baseWeight; });
+        
+        // Distribute parent's points among children
+        parent.children.forEach(function(child) {
+          child.basePoints = Math.round(parent.basePoints * (child.baseWeight / totalChildWeight));
+          calculateChildBasePoints(child, allActivities);
+        });
+      }
+      
+      function loadActivityHierarchy() {
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function(hierarchy) {
+            activityHierarchy = hierarchy;
+            // Calculate base points for all activities
+            activityHierarchy = calculateBasePoints(activityHierarchy);
+            renderActivityTree();
+            populateParentDropdown();
+            document.getElementById('loading').style.display = 'none';
+          })
+          .withFailureHandler(function(error) {
+            console.error(error);
+            alert('載入活動時發生錯誤: ' + error);
+            document.getElementById('loading').style.display = 'none';
+          })
+          .getActivityHierarchy();
+      }
+      
+      function renderActivityTree() {
+        var treeContainer = document.getElementById('activity-tree');
+        treeContainer.innerHTML = '';
+        
+        if (activityHierarchy.length === 0) {
+          treeContainer.innerHTML = '<div style="text-align: center; padding: 20px;">找不到活動</div>';
+          return;
+        }
+        
+        // Render level 1 activities
+        activityHierarchy.forEach(function(activity) {
+          renderActivityNode(activity, treeContainer);
+        });
+        
+        // Add the "Add Activity" button at the bottom
+        var addBtn = document.createElement('button');
+        addBtn.className = 'add-activity-btn action';
+        addBtn.textContent = 'Add Activity';
+        addBtn.addEventListener('click', function() {
+          switchTab('add');
+        });
+        treeContainer.appendChild(addBtn);
+      }
+      
+      function renderActivityNode(activity, container) {
+        var node = document.createElement('div');
+        node.className = 'tree-item level-' + activity.level;
+        node.textContent = activity.name;
+        node.dataset.id = activity.id;
+        
+        node.addEventListener('click', function(e) {
+          e.stopPropagation();
+          selectActivity(activity.id);
+        });
+        
+        container.appendChild(node);
+        
+        // Render children
+        if (activity.children && activity.children.length > 0) {
+          activity.children.forEach(function(child) {
+            renderActivityNode(child, container);
+          });
+        }
+      }
+      
+      function selectActivity(activityId) {
+        // Reset all tree items
+        document.querySelectorAll('.tree-item').forEach(function(item) {
+          item.classList.remove('active');
+        });
+        
+        // Find and mark selected activity
+        var selectedNode = document.querySelector('.tree-item[data-id="' + activityId + '"]');
+        if (selectedNode) {
+          selectedNode.classList.add('active');
+        }
+        
+        // Find activity data
+        selectedActivity = findActivityById(activityId);
+        
+        if (selectedActivity) {
+          // Show details tab
+          switchTab('details');
+          
+          // Show activity details
+          document.getElementById('no-selection').style.display = 'none';
+          document.getElementById('activity-details-content').style.display = 'block';
+          
+          // Update path display
+          var pathElements = [];
+          var currentActivity = selectedActivity;
+          
+          while (currentActivity) {
+            pathElements.unshift(currentActivity.name);
+            if (currentActivity.parentId) {
+              currentActivity = findActivityById(currentActivity.parentId);
+            } else {
+              break;
+            }
+          }
+          
+          document.getElementById('activity-path').textContent = '路徑: ' + pathElements.join(' > ');
+          
+          // Fill in details view
+          document.getElementById('activity-name-display').textContent = selectedActivity.name;
+          document.getElementById('activity-id-display').textContent = 'ID: ' + selectedActivity.id;
+          document.getElementById('activity-level-display').textContent = '層級: ' + selectedActivity.level;
+          document.getElementById('relative-weight-display').textContent = selectedActivity.relativeWeight + '%';
+          document.getElementById('base-points-display').textContent = selectedActivity.basePoints || '0';
+          document.getElementById('absolute-weight-display').textContent = selectedActivity.absoluteWeight;
+          document.getElementById('type-display').textContent = selectedActivity.type === 'Score' ? '分數型' : '僅出席';
+          
+          // Fill in edit form
+          document.getElementById('edit-activity-name').value = selectedActivity.name;
+          document.getElementById('edit-relative-weight').value = selectedActivity.relativeWeight;
+          document.getElementById('edit-activity-type').value = selectedActivity.type;
+          document.getElementById('edit-time-decay').value = selectedActivity.enableDecay.toString();
+          document.getElementById('edit-decay-rate').value = selectedActivity.decayRate;
+          document.getElementById('edit-description').value = selectedActivity.description || '';
+          
+          // Set milestone values
+          document.getElementById('edit-milestone-1').value = selectedActivity.minThreshold || 0;
+          document.getElementById('edit-milestone-2').value = (selectedActivity.minThreshold + selectedActivity.maxThreshold) / 2 || 0;
+          document.getElementById('edit-milestone-3').value = selectedActivity.maxThreshold || 0;
+          
+          // Toggle score options based on activity type
+          toggleScoreOptions();
+        }
+      }
+      
+      function findActivityById(id, activities) {
+        if (!activities) activities = activityHierarchy;
+        
+        for (var i = 0; i < activities.length; i++) {
+          if (activities[i].id === id) {
+            return activities[i];
+          }
+          
+          if (activities[i].children && activities[i].children.length > 0) {
+            var found = findActivityById(id, activities[i].children);
+            if (found) return found;
+          }
+        }
+        
+        return null;
+      }
+      
+      function getAllActivities(activities, result) {
+        if (!activities) activities = activityHierarchy;
+        if (!result) result = [];
+        
+        activities.forEach(function(activity) {
+          result.push(activity);
+          
+          if (activity.children && activity.children.length > 0) {
+            getAllActivities(activity.children, result);
+          }
+        });
+        
+        return result;
+      }
+      
+      function switchTab(tabId) {
+        // Hide all views
+        document.getElementById('details-view').style.display = 'none';
+        document.getElementById('add-view').style.display = 'none';
+        
+        // Deactivate all tabs
+        document.querySelectorAll('.tab').forEach(function(tab) {
+          tab.classList.remove('active');
+        });
+        
+        // Activate selected tab and view
+        document.getElementById(tabId + '-tab').classList.add('active');
+        document.getElementById(tabId + '-view').style.display = 'block';
+      }
+      
+      function toggleScoreOptions() {
+        var type = document.getElementById('edit-activity-type').value;
+        document.getElementById('score-options').style.display = type === 'Score' ? 'block' : 'none';
+      }
+      
+      function toggleAddScoreOptions() {
+        var type = document.getElementById('add-activity-type').value;
+        document.getElementById('add-score-options').style.display = type === 'Score' ? 'block' : 'none';
+      }
+      
+      function populateParentDropdown() {
+        var dropdown = document.getElementById('add-parent-activity');
+        
+        // Clear existing options except the first one
+        while (dropdown.options.length > 1) {
+          dropdown.remove(1);
+        }
+        
+        // Get all activities
+        var allActivities = getAllActivities();
+        
+        // Add level 1 and 2 activities as options (level 3 can't have children)
+        allActivities.forEach(function(activity) {
+          if (activity.level < 3) {
+            var option = document.createElement('option');
+            option.value = activity.id;
+            
+            var prefix = '';
+            for (var i = 1; i < activity.level; i++) {
+              prefix += '- ';
+            }
+            
+            option.textContent = prefix + activity.name + ' (Level ' + activity.level + ')';
+            dropdown.appendChild(option);
+          }
+        });
+      }
+      
+      function updateActivityLevel() {
+        var parentId = document.getElementById('add-parent-activity').value;
+        var levelSelect = document.getElementById('add-activity-level');
+        
+        if (!parentId) {
+          // Top level activity
+          levelSelect.value = '1';
+          
+          // Update parent path display
+          document.getElementById('parent-path').textContent = '新增頂層活動';
+        } else {
+          // Find parent activity
+          var parentActivity = findActivityById(parentId);
+          if (parentActivity) {
+            // Child's level is parent's level + 1
+            var childLevel = Math.min(parentActivity.level + 1, 3);
+            levelSelect.value = childLevel.toString();
+            
+            // Update parent path display
+            var pathElements = [];
+            var currentActivity = parentActivity;
+            
+            while (currentActivity) {
+              pathElements.unshift(currentActivity.name);
+              if (currentActivity.parentId) {
+                currentActivity = findActivityById(currentActivity.parentId);
+              } else {
+                break;
+              }
+            }
+            
+            document.getElementById('parent-path').textContent = '在此活動下新增: ' + pathElements.join(' > ');
+          }
+        }
+      }
+      
+      function saveActivityChanges() {
+        if (!selectedActivity) return;
+        
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('edit-success').style.display = 'none';
+        document.getElementById('edit-error').style.display = 'none';
+        
+        var updatedData = {
+          ActivityID: selectedActivity.id,
+          ActivityName: document.getElementById('edit-activity-name').value,
+          BaseWeight: parseFloat(document.getElementById('edit-relative-weight').value),
+          Type: document.getElementById('edit-activity-type').value,
+          EnableDecay: document.getElementById('edit-time-decay').value === 'true',
+          DecayRate: parseFloat(document.getElementById('edit-decay-rate').value)
+        };
+        
+        // Only include milestones for Score-based activities
+        if (updatedData.Type === 'Score') {
+          updatedData.MinThreshold = parseFloat(document.getElementById('edit-milestone-1').value);
+          updatedData.MaxThreshold = parseFloat(document.getElementById('edit-milestone-3').value);
+          updatedData.LowScoreFactor = parseFloat(document.getElementById('edit-low-score-factor').value) / 100; // Convert to decimal
+          updatedData.HighScoreFactor = parseFloat(document.getElementById('edit-high-score-factor').value) / 100; // Convert to decimal
+        }
+        
+        google.script.run
+          .withSuccessHandler(function(result) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('edit-success').style.display = 'block';
+            
+            // Reload activity hierarchy
+            setTimeout(function() {
+              loadActivityHierarchy();
+              document.getElementById('edit-success').style.display = 'none';
+            }, 2000);
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('edit-error').textContent = error;
+            document.getElementById('edit-error').style.display = 'block';
+          })
+          .updateActivity(updatedData);
+      }
+      
+      function addNewActivity() {
+        var nameInput = document.getElementById('add-activity-name');
+        var name = nameInput.value.trim();
+        
+        // Validate inputs
+        if (!name) {
+          document.getElementById('add-name-error').style.display = 'block';
+          nameInput.focus();
+          return;
+        } else {
+          document.getElementById('add-name-error').style.display = 'none';
+        }
+        
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('add-success').style.display = 'none';
+        document.getElementById('add-error').style.display = 'none';
+        
+        var parentId = document.getElementById('add-parent-activity').value;
+        var level = parseInt(document.getElementById('add-activity-level').value);
+        
+        // Prepare activity data
+        var activityData = {
+          ActivityName: name,
+          Level: level,
+          ParentID: parentId || '', // Empty string for top level
+          BaseWeight: parseFloat(document.getElementById('add-relative-weight').value),
+          Type: document.getElementById('add-activity-type').value,
+          EnableDecay: document.getElementById('add-time-decay').value === 'true',
+          DecayRate: parseFloat(document.getElementById('add-decay-rate').value),
+          Description: document.getElementById('add-description').value
+        };
+        
+        // Only include milestones for Score-based activities
+        if (activityData.Type === 'Score') {
+          activityData.MinThreshold = parseFloat(document.getElementById('add-milestone-1').value);
+          activityData.MaxThreshold = parseFloat(document.getElementById('add-milestone-3').value);
+          activityData.LowScoreFactor = parseFloat(document.getElementById('add-low-score-factor').value) / 100; // Convert to decimal
+          activityData.HighScoreFactor = parseFloat(document.getElementById('add-high-score-factor').value) / 100; // Convert to decimal
+        }
+        
+        google.script.run
+          .withSuccessHandler(function(activityId) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('add-success').style.display = 'block';
+            
+            // Clear form
+            clearAddForm();
+            
+            // Reload activity hierarchy and select the new activity
+            setTimeout(function() {
+              loadActivityHierarchy();
+              document.getElementById('add-success').style.display = 'none';
+              
+              // Wait for hierarchy to load then select the new activity
+              setTimeout(function() {
+                selectActivity(activityId);
+              }, 500);
+            }, 1000);
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('add-error').textContent = error;
+            document.getElementById('add-error').style.display = 'block';
+          })
+          .addActivity(activityData);
+      }
+      
+      function clearAddForm() {
+        document.getElementById('add-activity-name').value = '';
+        document.getElementById('add-parent-activity').value = '';
+        document.getElementById('add-activity-level').value = '1';
+        document.getElementById('add-relative-weight').value = '50';
+        document.getElementById('add-activity-type').value = 'Score';
+        document.getElementById('add-time-decay').value = 'true';
+        document.getElementById('add-decay-rate').value = '0.05';
+        document.getElementById('add-milestone-1').value = '0';
+        document.getElementById('add-milestone-2').value = '0';
+        document.getElementById('add-milestone-3').value = '0';
+        document.getElementById('add-description').value = '';
+        document.getElementById('add-name-error').style.display = 'none';
+        document.getElementById('parent-path').textContent = '新增頂層活動';
+        
+        // Show score options
+        toggleAddScoreOptions();
+      }
+      
+      function deleteSelectedActivity() {
+        if (!selectedActivity) return;
+        
+        // Confirm deletion
+        if (!confirm('確定要刪除 "' + selectedActivity.name + '"? 這也會刪除所有子活動！')) {
+          return;
+        }
+        
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function(count) {
+            document.getElementById('loading').style.display = 'none';
+            alert('已刪除活動和 ' + (count - 1) + ' 個子活動');
+            
+            // Reload activity hierarchy
+            loadActivityHierarchy();
+            
+            // Reset selection
+            document.getElementById('no-selection').style.display = 'block';
+            document.getElementById('activity-details-content').style.display = 'none';
+            document.getElementById('activity-path').textContent = '選擇一個活動查看詳細資料';
+            selectedActivity = null;
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('loading').style.display = 'none';
+            alert('刪除活動時發生錯誤: ' + error);
+          })
+          .deleteActivity(selectedActivity.id);
+      }
+    </script>
+  </body>
+</html>
